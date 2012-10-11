@@ -1,3 +1,5 @@
+require 'socket'
+
 class Bloomrb
   attr_accessor :host, :port
 

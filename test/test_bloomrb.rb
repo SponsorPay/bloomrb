@@ -137,5 +137,23 @@ class BloomrbTest < Test::Unit::TestCase
         'size' => '0',
         'storage' => '1797211'}, @bloom.info('foobar'))
     end
+
+    should "retry" do
+      @bloom.expects(:sleep).with(1)
+      @socket.expects(:puts).twice.with("s foobar fookey")
+      @socket.expects(:gets).twice.raises(Errno::ECONNRESET).then.returns("No")
+
+      assert_equal false, @bloom.set('foobar', :fookey)
+    end
+
+    should "raise after 5 retries" do
+      @bloom.expects(:sleep).times(4).with(1)
+      @socket.expects(:puts).times(5).with("s foobar fookey")
+      @socket.expects(:gets).times(5).raises(Errno::ECONNRESET)
+
+      assert_raises Errno::ECONNRESET do
+        @bloom.set('foobar', :fookey)
+      end
+    end
   end
 end

@@ -84,17 +84,25 @@ class Bloomrb
     cmd = args.join(' ')
     cmd += ' ' + opts.map{|k, v| "#{k}=#{v}"}.join(' ') unless opts.empty?
     
-    socket.puts(cmd)
-    result = socket.gets.chomp
-    throw result if result =~ /^Client Error:/
+    retry_count = 0
+    begin
+      socket.puts(cmd)
+      result = socket.gets.chomp
+      throw result if result =~ /^Client Error:/
 
-    if result == 'START'
-      result = []
-      while (s = socket.gets.chomp) != 'END'
-        result << s
+      if result == 'START'
+        result = []
+        while (s = socket.gets.chomp) != 'END'
+          result << s
+        end
       end
+      result
+    rescue Errno::ECONNRESET, Errno::ECONNABORTED, Errno::ECONNREFUSED, Errno::EPIPE
+      raise if (retry_count += 1) >= 5
+      @socket = nil
+      sleep(1)
+      retry
     end
-    result
   end
 end
 

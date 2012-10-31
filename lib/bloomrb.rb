@@ -48,14 +48,20 @@ class Bloomrb
   end
 
   def multi(filter, keys)
+    return Hash.new if keys.empty?
+
     Hash[keys.zip(execute('m', filter, *keys).split(' ').map{|r| r == 'Yes'})]
   end
-  
+
   def any?(filter, keys)
+    return false if keys.empty?
+
     !!(execute('m', filter, *keys) =~ /Yes/)
   end
 
   def all?(filter, keys)
+    return true if keys.empty?
+
     !!(execute('m', filter, *keys) !~ /No/)
   end
 
@@ -64,6 +70,8 @@ class Bloomrb
   end
 
   def bulk(filter, keys)
+    return "" if keys.empty?
+
     execute('b', filter, *keys)
   end
 

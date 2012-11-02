@@ -1,11 +1,12 @@
 require 'socket'
 
 class Bloomrb
-  attr_accessor :host, :port
+  attr_accessor :host, :port, :retries
 
-  def initialize(host = 'localhost', port = 8673)
-    self.host = host
-    self.port = port
+  def initialize(host = 'localhost', port = 8673, retries = 5)
+    self.host    = host
+    self.port    = port
+    self.retries = retries
   end
 
   def socket
@@ -106,7 +107,7 @@ class Bloomrb
       end
       result
     rescue Errno::ECONNRESET, Errno::ECONNABORTED, Errno::ECONNREFUSED, Errno::EPIPE
-      raise if (retry_count += 1) >= 5
+      raise if (retry_count += 1) >= retries
       @socket = nil
       sleep(1)
       retry

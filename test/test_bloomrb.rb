@@ -77,6 +77,12 @@ class BloomrbTest < Test::Unit::TestCase
                    @bloom.multi('foobar', [:fookey1, :fookey2, :fookey3]))
     end
 
+    should "return empty hash when no keys provided to multi" do
+      @socket.expects(:puts).never
+
+      assert_equal Hash.new, @bloom.multi('foobar', [])
+    end
+
     should "check if any of the keys are there" do
       @socket.expects(:puts).with("m foobar fookey1 fookey2 fookey3")
       @socket.expects(:gets).returns("No Yes No")
@@ -84,11 +90,23 @@ class BloomrbTest < Test::Unit::TestCase
       assert_equal true, @bloom.any?('foobar', [:fookey1, :fookey2, :fookey3])
     end
 
+    should "return false when no keys provided to any?" do
+      @socket.expects(:puts).never
+
+      assert_equal false, @bloom.any?('foobar', [])
+    end
+
     should "check if all of the keys are there" do
       @socket.expects(:puts).with("m foobar fookey1 fookey2 fookey3")
       @socket.expects(:gets).returns("No Yes No")
 
       assert_equal false, @bloom.all?('foobar', [:fookey1, :fookey2, :fookey3])
+    end
+
+    should "return true when no keys provided to all?" do
+      @socket.expects(:puts).never
+
+      assert_equal true, @bloom.all?('foobar', [])
     end
 
     should "set a key" do
@@ -103,6 +121,12 @@ class BloomrbTest < Test::Unit::TestCase
       @socket.expects(:gets).returns("No Yes No")
 
       assert_equal 'No Yes No', @bloom.bulk('foobar', [:fookey1, :fookey2, :fookey3])
+    end
+
+    should "return empty string when no keys provided to bulk" do
+      @socket.expects(:puts).never
+
+      assert_equal "", @bloom.bulk('foobar', [])
     end
 
     should "return an info hash" do
@@ -144,6 +168,17 @@ class BloomrbTest < Test::Unit::TestCase
       @socket.expects(:gets).twice.raises(Errno::ECONNRESET).then.returns("No")
 
       assert_equal false, @bloom.set('foobar', :fookey)
+    end
+
+    should "not retry if retries set to 0" do
+      @bloom.retries = 0
+
+      @socket.expects(:puts).raises(Errno::ECONNRESET)
+      @bloom.expects(:sleep).never
+
+      assert_raises Errno::ECONNRESET do
+        @bloom.set('foobar', :fookey)
+      end
     end
 
     should "raise after 5 retries" do

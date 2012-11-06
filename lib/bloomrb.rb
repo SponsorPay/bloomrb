@@ -1,11 +1,12 @@
 require 'socket'
 
 class Bloomrb
-  attr_accessor :host, :port
+  attr_accessor :host, :port, :retries
 
-  def initialize(host = 'localhost', port = 8673)
-    self.host = host
-    self.port = port
+  def initialize(host = 'localhost', port = 8673, retries = 5)
+    self.host    = host
+    self.port    = port
+    self.retries = retries
   end
 
   def socket
@@ -53,14 +54,20 @@ class Bloomrb
   end
 
   def multi(filter, keys)
+    return Hash.new if keys.empty?
+
     Hash[keys.zip(execute('m', filter, *keys).split(' ').map{|r| r == 'Yes'})]
   end
-  
+
   def any?(filter, keys)
+    return false if keys.empty?
+
     !!(execute('m', filter, *keys) =~ /Yes/)
   end
 
   def all?(filter, keys)
+    return true if keys.empty?
+
     !!(execute('m', filter, *keys) !~ /No/)
   end
 
@@ -69,6 +76,8 @@ class Bloomrb
   end
 
   def bulk(filter, keys)
+    return "" if keys.empty?
+
     execute('b', filter, *keys)
   end
 
@@ -103,7 +112,7 @@ class Bloomrb
       end
       result
     rescue Errno::ECONNRESET, Errno::ECONNABORTED, Errno::ECONNREFUSED, Errno::EPIPE
-      raise if (retry_count += 1) >= 5
+      raise if (retry_count += 1) >= retries
       @socket = nil
       sleep(1)
       retry

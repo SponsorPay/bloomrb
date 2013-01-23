@@ -15,6 +15,11 @@ class Bloomrb
     @socket ||= TCPSocket.new(host, port)
   end
 
+  def disconnect
+    @socket.close if @socket
+    @socket = nil
+  end
+
   def filter(name)
     BloomFilter.new(name, self)
   end
@@ -99,7 +104,7 @@ class Bloomrb
     begin
       socket.puts(cmd)
       result = read_socket_data
-      throw result if result =~ /^Client Error:/
+      raise "#{result}: #{cmd[0..99]}" if result =~ /^Client Error:/
 
       if result == 'START'
         result = []

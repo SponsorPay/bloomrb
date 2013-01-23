@@ -162,10 +162,18 @@ class BloomrbTest < Test::Unit::TestCase
         'storage' => '1797211'}, @bloom.info('foobar'))
     end
 
-    should "retry" do
+    should "retry on connection error" do
       @bloom.expects(:sleep).with(1)
       @socket.expects(:puts).twice.with("s foobar fookey")
       @socket.expects(:gets).twice.raises(Errno::ECONNRESET).then.returns("No")
+
+      assert_equal false, @bloom.set('foobar', :fookey)
+    end
+
+    should "retry on connection closed" do
+      @bloom.expects(:sleep).with(1)
+      @socket.expects(:puts).twice.with("s foobar fookey")
+      @socket.expects(:gets).twice.returns(nil).then.returns("No")
 
       assert_equal false, @bloom.set('foobar', :fookey)
     end
@@ -181,12 +189,22 @@ class BloomrbTest < Test::Unit::TestCase
       end
     end
 
-    should "raise after 5 retries" do
+    should "raise after 5 retries on connection error" do
       @bloom.expects(:sleep).times(4).with(1)
       @socket.expects(:puts).times(5).with("s foobar fookey")
       @socket.expects(:gets).times(5).raises(Errno::ECONNRESET)
 
       assert_raises Errno::ECONNRESET do
+        @bloom.set('foobar', :fookey)
+      end
+    end
+
+    should "raise after 5 retries on connection closed" do
+      @bloom.expects(:sleep).times(4).with(1)
+      @socket.expects(:puts).times(5).with("s foobar fookey")
+      @socket.expects(:gets).times(5).returns(nil)
+
+      assert_raises Bloomrb::ConnectionClosed do
         @bloom.set('foobar', :fookey)
       end
     end

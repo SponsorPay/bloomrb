@@ -1,6 +1,8 @@
 require 'socket'
 
 class Bloomrb
+  class ConnectionClosed < Exception; end
+
   attr_accessor :host, :port, :retries
 
   def initialize(host = 'localhost', port = 8673, retries = 5)
@@ -92,26 +94,33 @@ class Bloomrb
 
     cmd = args.join(' ')
     cmd += ' ' + opts.map{|k, v| "#{k}=#{v}"}.join(' ') unless opts.empty?
-    
+
     retry_count = 0
     begin
       socket.puts(cmd)
-      result = socket.gets.chomp
+      result = read_socket_data
       throw result if result =~ /^Client Error:/
 
       if result == 'START'
         result = []
-        while (s = socket.gets.chomp) != 'END'
+        while (s = read_socket_data) != 'END'
           result << s
         end
       end
       result
-    rescue Errno::ECONNRESET, Errno::ECONNABORTED, Errno::ECONNREFUSED, Errno::EPIPE
+    rescue Errno::ECONNRESET, Errno::ECONNABORTED, Errno::ECONNREFUSED, Errno::EPIPE, ConnectionClosed
       raise if (retry_count += 1) >= retries
       @socket = nil
       sleep(1)
       retry
     end
+  end
+
+  def read_socket_data
+    received_data = socket.gets
+    # IO#gets returns nil on EOF
+    raise ConnectionClosed.new("Connection has been closed") if received_data.nil?
+    received_data.tap {|rd| rd.chomp! }
   end
 end
 

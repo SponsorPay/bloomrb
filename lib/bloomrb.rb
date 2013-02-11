@@ -97,7 +97,7 @@ class Bloomrb
 
     cmd = args.join(' ')
     cmd += ' ' + opts.map{|k, v| "#{k}=#{v}"}.join(' ') unless opts.empty?
-    
+
     retry_count = 0
     begin
       socket.puts(cmd)
@@ -112,7 +112,7 @@ class Bloomrb
       end
       result
     rescue Errno::ECONNRESET, Errno::ECONNABORTED, Errno::ECONNREFUSED, Errno::EPIPE
-      raise if (retry_count += 1) >= retries
+      raise if (retry_count += 1) > retries
       @socket = nil
       sleep(1)
       retry

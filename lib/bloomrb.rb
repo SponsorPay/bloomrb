@@ -15,7 +15,9 @@ class Bloomrb
 
   def socket
     @socket ||= Timeout::timeout(timeout) do
-      TCPSocket.new(host, port)
+      TCPSocket.new(host, port).tap do |socket|
+        socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+      end
     end rescue nil
 
     raise ConnectionTimeout if @socket.nil?

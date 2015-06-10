@@ -10,7 +10,9 @@ class Bloomrb
   end
 
   def socket
-    @socket ||= TCPSocket.new(host, port)
+    @socket ||= TCPSocket.new(host, port).tap do |socket|
+      socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+    end
   end
 
   def disconnect
@@ -97,7 +99,7 @@ class Bloomrb
 
     cmd = args.join(' ')
     cmd += ' ' + opts.map{|k, v| "#{k}=#{v}"}.join(' ') unless opts.empty?
-    
+
     retry_count = 0
     begin
       socket.puts(cmd)

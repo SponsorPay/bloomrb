@@ -12,6 +12,19 @@ class BloomrbTest < Test::Unit::TestCase
       @bloom.stubs(:socket).returns(@socket)
     end
 
+    context "if tcp socket is not answering" do
+      setup do
+        @bloom.unstub(:socket)
+        TCPSocket.stubs(:new).yields { sleep 0.1 }
+      end
+
+      should "raise a timeout" do
+        assert_raises Bloomrb::ConnectionTimeout do
+          @bloom.socket
+        end
+      end
+    end
+
     should "create a filter" do
       @socket.expects(:puts).with("create foobar capacity=1000000 prob=0.001")
       @socket.expects(:gets).returns("Done")

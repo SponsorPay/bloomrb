@@ -1,18 +1,28 @@
 require 'socket'
+require 'timeout'
 
 class Bloomrb
-  attr_accessor :host, :port, :retries
+  attr_accessor :host, :port, :retries, :timeout
 
-  def initialize(host = 'localhost', port = 8673, retries = 5)
+  class ConnectionTimeout < Exception; end
+
+  def initialize(host = 'localhost', port = 8673, retries = 5, timeout = 0.02)
     self.host    = host
     self.port    = port
     self.retries = retries
+    self.timeout = timeout
   end
 
   def socket
-    @socket ||= TCPSocket.new(host, port).tap do |socket|
-      socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
-    end
+    @socket ||= Timeout::timeout(timeout) do
+      TCPSocket.new(host, port).tap do |socket|
+        socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+      end
+    end rescue nil
+
+    raise ConnectionTimeout if @socket.nil?
+
+    @socket
   end
 
   def disconnect

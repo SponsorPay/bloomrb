@@ -1,6 +1,8 @@
 require 'socket'
 
 class Bloomrb
+  class Error < StandardError; end
+
   attr_accessor :host, :port, :retries
 
   def initialize(host = 'localhost', port = 8673, retries = 5)
@@ -93,6 +95,15 @@ class Bloomrb
 
   protected
 
+  ERROR_RESPONSE_MATCHERS = [
+    /Filter does not exist/,
+    /^Client Error:/
+  ].freeze
+
+  def error?(result)
+    ERROR_RESPONSE_MATCHERS.any? { |matcher| result =~ matcher }
+  end
+
   def execute *args
     opts = Hash === args.last ? args.pop : {}
     args.compact!
@@ -104,7 +115,7 @@ class Bloomrb
     begin
       socket.puts(cmd)
       result = socket.gets.chomp
-      raise "#{result}: #{cmd[0..99]}" if result =~ /^Client Error:/
+      raise Error, "#{result}: #{cmd[0..99]}" if error?(result)
 
       if result == 'START'
         result = []

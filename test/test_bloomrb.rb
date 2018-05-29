@@ -73,7 +73,7 @@ class BloomrbTest < Test::Unit::TestCase
       @socket.expects(:puts).with("m foobar fookey1 fookey2 fookey3")
       @socket.expects(:gets).returns("No Yes No")
 
-      assert_equal({:fookey1 => false, :fookey2 => true, :fookey3 => false}, 
+      assert_equal({:fookey1 => false, :fookey2 => true, :fookey3 => false},
                    @bloom.multi('foobar', [:fookey1, :fookey2, :fookey3]))
     end
 
@@ -114,6 +114,15 @@ class BloomrbTest < Test::Unit::TestCase
       @socket.expects(:gets).returns("No")
 
       assert_equal false, @bloom.set('foobar', :fookey)
+    end
+
+    should 'raise an error when filter does not exists' do
+      @socket.expects(:puts).with('s foobar fookey')
+      @socket.expects(:gets).returns('Filter does not exist')
+
+      assert_raises Bloomrb::Error do
+        @bloom.set('foobar', :fookey)
+      end
     end
 
     should "bulk set keys" do

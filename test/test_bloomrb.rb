@@ -179,6 +179,16 @@ class BloomrbTest < Test::Unit::TestCase
       assert_equal false, @bloom.set('foobar', :fookey)
     end
 
+    should "retry exactly once if retries equals one" do
+      @bloom.retries = 1
+
+      @bloom.expects(:sleep).once.with(1)
+      @socket.expects(:puts).twice.with("s foobar fookey")
+      @socket.expects(:gets).twice.raises(Errno::ECONNRESET).then.returns("No")
+
+      assert_equal false, @bloom.set('foobar', :fookey)
+    end
+
     should "not retry if retries set to 0" do
       @bloom.retries = 0
 
@@ -191,9 +201,9 @@ class BloomrbTest < Test::Unit::TestCase
     end
 
     should "raise after 5 retries" do
-      @bloom.expects(:sleep).times(4).with(1)
-      @socket.expects(:puts).times(5).with("s foobar fookey")
-      @socket.expects(:gets).times(5).raises(Errno::ECONNRESET)
+      @bloom.expects(:sleep).times(5).with(1)
+      @socket.expects(:puts).times(6).with("s foobar fookey")
+      @socket.expects(:gets).times(6).raises(Errno::ECONNRESET)
 
       assert_raises Errno::ECONNRESET do
         @bloom.set('foobar', :fookey)

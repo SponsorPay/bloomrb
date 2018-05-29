@@ -125,7 +125,7 @@ class Bloomrb
       end
       result
     rescue Errno::ECONNRESET, Errno::ECONNABORTED, Errno::ECONNREFUSED, Errno::EPIPE
-      raise if (retry_count += 1) >= retries
+      raise if (retry_count += 1) > retries
       @socket = nil
       sleep(1)
       retry
